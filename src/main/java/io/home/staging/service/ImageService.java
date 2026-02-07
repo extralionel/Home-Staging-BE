@@ -8,6 +8,7 @@ import io.home.staging.repository.ImageRepository;
 import io.home.staging.repository.UserRepository;
 import java.io.IOException;
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -63,14 +64,15 @@ public class ImageService {
     User user = userRepository.findByEmailOrThrow(email);
 
     try {
-      Map result = cloudinary.uploader().upload(file.getBytes(), Map.of());
+      //Map result = cloudinary.uploader().upload(file.getBytes(), Map.of());
+      Map result = new HashMap<>();
       String publicId = result.get("public_id").toString();
       String url = result.get("url").toString();
 
       Image image = new Image(url, publicId, user);
-      imageRepository.save(image);
+      //imageRepository.save(image);
       return new ImageResponse(image);
-    } catch (IOException e) {
+    } catch (Exception e) {
       throw new RuntimeException("Error while trying to upload image to Cloudinary.", e);
     }
   }

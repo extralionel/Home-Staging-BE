@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/prompt")
 public class PromptController {
 
-  private PromptService promptService;
+  private final PromptService promptService;
 
   @Autowired
   public PromptController(PromptService promptService) {

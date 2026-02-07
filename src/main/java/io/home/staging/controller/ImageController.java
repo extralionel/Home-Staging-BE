@@ -2,6 +2,7 @@ package io.home.staging.controller;
 
 import io.home.staging.model.response.ImageResponse;
 import io.home.staging.service.ImageService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -25,7 +26,8 @@ public class ImageController {
   }
 
   @PostMapping
-  public ResponseEntity<ImageResponse> uploadImage(Authentication authentication, @RequestBody MultipartFile file) {
+  public ResponseEntity<ImageResponse> uploadImage(Authentication authentication,
+      @RequestBody MultipartFile file) {
     return ResponseEntity.ok(imageService.uploadImage(authentication, file));
   }
 
