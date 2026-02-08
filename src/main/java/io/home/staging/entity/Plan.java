@@ -32,9 +32,6 @@ public class Plan {
   @Column(nullable = false)
   private Integer credits;
 
-  @Column(name = "current_credits")
-  private Integer currentCredits;
-
   @Column(name = "daily_generation_limit", nullable = false)
   private Integer dailyGenerationLimit;
 }

@@ -26,9 +26,11 @@ public class ImageController {
   }
 
   @PostMapping
-  public ResponseEntity<ImageResponse> uploadImage(Authentication authentication,
-      @RequestBody MultipartFile file) {
-    return ResponseEntity.ok(imageService.uploadImage(authentication, file));
+  public ResponseEntity<ImageResponse> uploadImage(
+      Authentication authentication,
+      @RequestBody MultipartFile file
+  ) {
+    return ResponseEntity.ok(new ImageResponse(imageService.uploadImage(authentication, file)));
   }
 
   @GetMapping("/{imageId}")

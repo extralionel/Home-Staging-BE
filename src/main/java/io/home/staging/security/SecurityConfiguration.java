@@ -25,7 +25,7 @@ import org.springframework.security.config.Customizer;
 import java.util.Arrays;
 
 @Configuration
-@EnableWebSecurity(debug = true)
+@EnableWebSecurity(debug = false)
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
