@@ -2,9 +2,8 @@ package io.home.staging.controller;
 
 import io.home.staging.model.request.PromptRequest;
 import io.home.staging.model.response.JobStatusResponse;
-import io.home.staging.service.PromptService;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import io.home.staging.service.JobService;
+import io.home.staging.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,13 +18,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/prompt")
-public class PromptController {
+public class ProjectController {
 
-  private final PromptService promptService;
+  private final ProjectService projectService;
+  private final JobService jobService;
 
   @Autowired
-  public PromptController(PromptService promptService) {
-    this.promptService = promptService;
+  public ProjectController(ProjectService projectService, JobService jobService) {
+    this.projectService = projectService;
+    this.jobService = jobService;
   }
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -33,13 +34,18 @@ public class PromptController {
       @RequestPart("prompt") PromptRequest request,
       @RequestPart("file") MultipartFile file,
       Authentication authentication) {
-    JobStatusResponse jobStatus = promptService.initiateGeneration(request, file, authentication);
+    JobStatusResponse jobStatus = projectService.initiateGeneration(request, file, authentication);
     return ResponseEntity.ok(jobStatus);
   }
 
   @GetMapping("/status/{jobId}")
   public ResponseEntity<JobStatusResponse> getJobStatus(@PathVariable Long jobId) {
-    return ResponseEntity.ok(promptService.getJobStatus(jobId));
+    return ResponseEntity.ok(jobService.getJobStatus(jobId));
+  }
+
+  @GetMapping
+  public ResponseEntity<Void> getProjects(Authentication authentication) {
+    return ResponseEntity.ok().build();
   }
 
 }

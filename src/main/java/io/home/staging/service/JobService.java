@@ -18,24 +18,29 @@ public class JobService {
     this.jobStatusRepository = jobStatusRepository;
   }
 
-  public JobStatusResponse createJob(Status status, User user) {
+  public JobStatus createJob(Status status, User user) {
     JobStatus job = new JobStatus();
     job.setCreatedAt(LocalDateTime.now());
     job.setUser(user);
     job.setStatus(status);
 
-    job = jobStatusRepository.save(job);
-    return new JobStatusResponse(job);
+    return jobStatusRepository.saveAndFlush(job);
   }
 
   public void updateJobStatus(Long jobId, Status status) {
     JobStatus job = jobStatusRepository.findByIdOrElseThrow(jobId);
     job.setStatus(status);
-    jobStatusRepository.save(job);
+    jobStatusRepository.saveAndFlush(job);
   }
 
   public JobStatusResponse getJobStatus(Long jobId) {
     JobStatus job = jobStatusRepository.findByIdOrElseThrow(jobId);
     return new JobStatusResponse(job);
+  }
+
+  public void completeJob(Long jobId) {
+    JobStatus job = jobStatusRepository.findByIdOrElseThrow(jobId);
+    job.setStatus(Status.SUCCESS);
+    jobStatusRepository.saveAndFlush(job);
   }
 }

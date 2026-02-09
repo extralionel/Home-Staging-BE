@@ -22,8 +22,6 @@ public class JobStatus {
     @Enumerated(EnumType.STRING)
     private Status status;
 
-    private String imageUrl;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;

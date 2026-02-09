@@ -1,46 +1,46 @@
-package io.home.staging.service;
+package io.home.staging.ai;
 
-import io.home.staging.entity.Image;
-import io.home.staging.model.response.GeminiResponseWrapper;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
-@Service
-public class VertexService {
+@Component
+@Profile("!mock-image-generator")
+public class VertexImageGenerator implements ImageGenerator {
 
   @Value("${gemini.api.key}")
   private String apiKey;
 
   private final RestTemplate restTemplate;
 
-  public VertexService(final RestTemplate restTemplate) {
+  public VertexImageGenerator(RestTemplate restTemplate) {
     this.restTemplate = restTemplate;
   }
 
-  @Async
-  public CompletableFuture<byte[]> generateModifiedImage(byte[] inputImageBytes, String prompt) {
+  @Async("imageTaskExecutor")
+  @Override
+  public CompletableFuture<byte[]> generateImage(String prompt, byte[] image) {
     log.info("Generating modified image via REST API...");
 
     try {
       String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key="
           + apiKey;
 
-      String base64Image = Base64.getEncoder().encodeToString(inputImageBytes);
+      String base64Image = Base64.getEncoder().encodeToString(image);
 
       // Construct Multimodal Payload
       Map<String, Object> partText = Map.of("text", prompt);
@@ -63,13 +63,13 @@ public class VertexService {
 
       if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
         log.info("Received successful response from API.");
-        return extractImageFromResponse(response.getBody());
+        return CompletableFuture.completedFuture(extractImageFromResponse(response.getBody()));
       }
 
       throw new RuntimeException("API call failed with status: " + response.getStatusCode());
     } catch (Exception e) {
       log.error("Error generating image via REST API", e);
-      throw new RuntimeException("Failed to generate image", e);
+      return CompletableFuture.failedFuture(e);
     }
   }
 

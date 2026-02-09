@@ -20,6 +20,5 @@ public class JobStatusResponse {
     this.jobId = job.getId();
     this.status = job.getStatus().toString();
     this.type = "IMAGE";
-    this.imageUrl = job.getImageUrl();
   }
 }

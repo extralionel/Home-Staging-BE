@@ -33,13 +33,13 @@ public class Image {
   @Column(name = "public_id")
   private String publicId;
 
-  @JoinColumn(name = "user_id")
+  @JoinColumn(name = "project_id")
   @ManyToOne(fetch = FetchType.LAZY)
-  private User user;
+  private Project project;
 
-  public Image(String url, String publicId, User user) {
+  public Image(String url, String publicId, Project project) {
     this.url = url;
     this.publicId = publicId;
-    this.user = user;
+    this.project = project;
   }
 }

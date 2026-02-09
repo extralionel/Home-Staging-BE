@@ -2,14 +2,17 @@ package io.home.staging.service;
 
 import com.cloudinary.Cloudinary;
 import io.home.staging.entity.Image;
+import io.home.staging.entity.Project;
 import io.home.staging.entity.User;
 import io.home.staging.model.response.ImageResponse;
 import io.home.staging.repository.ImageRepository;
+import io.home.staging.repository.ProjectRepository;
 import io.home.staging.repository.UserRepository;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,31 +49,44 @@ public class ImageService {
    */
   private final Cloudinary cloudinary;
   private final UserRepository userRepository;
+  private final ProjectRepository projectRepository;
   private final ImageRepository imageRepository;
 
   public ImageService(
       Cloudinary cloudinary,
       UserRepository userRepository,
+      ProjectRepository projectRepository,
       ImageRepository imageRepository) {
     this.cloudinary = cloudinary;
     this.userRepository = userRepository;
+    this.projectRepository = projectRepository;
     this.imageRepository = imageRepository;
+  }
+
+  public Image uploadImage(Authentication authentication, MultipartFile file) {
+    try {
+      return uploadImage(authentication, null, file.getBytes());
+    } catch (IOException e) {
+      throw new RuntimeException("Error while deserializing image", e);
+    }
   }
 
   /**
    * Upload image to Cloudinary
    */
-  public Image uploadImage(Principal principal, MultipartFile file) {
-    String email = principal.getName();
+  public Image uploadImage(Authentication authentication, Project project, byte[] file) {
+    String email = authentication.getName();
     User user = userRepository.findByEmailOrThrow(email);
 
     try {
-      Map result = cloudinary.uploader().upload(file.getBytes(), Map.of());
+      Map result = cloudinary.uploader().upload(file, Map.of());
       String publicId = result.get("public_id").toString();
       String url = result.get("url").toString();
 
-      Image image = new Image(url, publicId, user);
-      return imageRepository.save(image);
+      Image image = new Image(url, publicId, project);
+      project.addImage(image);
+      projectRepository.save(project);
+      return image;
     } catch (Exception e) {
       throw new RuntimeException("Error while trying to upload image to Cloudinary.", e);
     }
@@ -85,5 +101,4 @@ public class ImageService {
       throw new RuntimeException("Error al eliminar la imagen", e);
     }
   }
-
 }
