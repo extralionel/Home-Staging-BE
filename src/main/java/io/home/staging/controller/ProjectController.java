@@ -2,8 +2,10 @@ package io.home.staging.controller;
 
 import io.home.staging.model.request.PromptRequest;
 import io.home.staging.model.response.JobStatusResponse;
+import io.home.staging.model.response.ProjectResponse;
 import io.home.staging.service.JobService;
 import io.home.staging.service.ProjectService;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +32,7 @@ public class ProjectController {
   }
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<JobStatusResponse> generatePrompt(
+  public ResponseEntity<JobStatusResponse> generateProject(
       @RequestPart("prompt") PromptRequest request,
       @RequestPart("file") MultipartFile file,
       Authentication authentication) {
@@ -38,14 +40,13 @@ public class ProjectController {
     return ResponseEntity.ok(jobStatus);
   }
 
+  @GetMapping("/projects")
+  public ResponseEntity<List<ProjectResponse>> getProjects(Authentication authentication) {
+    return ResponseEntity.ok(projectService.getProjects(authentication));
+  }
+
   @GetMapping("/status/{jobId}")
   public ResponseEntity<JobStatusResponse> getJobStatus(@PathVariable Long jobId) {
     return ResponseEntity.ok(jobService.getJobStatus(jobId));
   }
-
-  @GetMapping
-  public ResponseEntity<Void> getProjects(Authentication authentication) {
-    return ResponseEntity.ok().build();
-  }
-
 }

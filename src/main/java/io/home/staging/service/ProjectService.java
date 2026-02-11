@@ -22,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @Service
 public class ProjectService {
+
   private final ImageService imageService;
   private final ImageGenerator imageGenerator;
   private final JobService jobService;
@@ -52,28 +53,30 @@ public class ProjectService {
         .collect(Collectors.toList());
   }
 
-  public JobStatusResponse initiateGeneration(PromptRequest request, MultipartFile file,
-      Authentication authentication) {
+  public JobStatusResponse initiateGeneration(PromptRequest request,
+      MultipartFile file, Authentication authentication) {
     String name = authentication.getName();
+
     User user = userRepository.findByEmailOrThrow(name);
-
     JobStatus job = jobService.createJob(Status.PENDING, user);
-    Project project = projectRepository.save(new Project(user, job));
-
-    // TODO: Validate if user has credits
 
     try {
-      // We need to keep the file bytes as the file might be cleared after the request
-      // finishes
-      byte[] fileBytes = file.getBytes();
-
       String promptText = String.format(
-          "Update the attached image (home-staging) and transform this %s into a %s style. %s. Final output should be high-quality and realistic.",
+          "Photorealistic virtual staging of a %s, decorated in a premium %s style. " +
+              "**OBJECTIVE:** Furnish the space with high-quality furniture, rugs, and decor that match the room's scale and perspective. " +
+              "**CONSTRAINTS:** Strictly preserve the original structural integrity, including wall positions, window views, ceiling details, and existing flooring materials. Do not alter architectural features. " +
+              "**INTEGRATION:** Ensure new furniture casts realistic shadows on the floor and interacts naturally with the existing lighting direction. " +
+              "**AESTHETIC:** Clean lines, decluttered, magazine-quality composition, 8k resolution. " +
+              "%s",
           request.getRoomType(),
           request.getStyle(),
-          request.getAdditionalDetails() != null ? request.getAdditionalDetails() : "");
+          request.getAdditionalDetails() != null ? "Specific details: " + request.getAdditionalDetails() : ""
+      );
 
-      CompletableFuture<byte[]> imageBytesFuture = imageGenerator.generateImage(promptText, fileBytes);
+      Project project = projectRepository.save(new Project(user, job, promptText));
+
+      CompletableFuture<byte[]> imageBytesFuture = imageGenerator.generateImage(promptText,
+          file.getBytes());
 
       imageBytesFuture.thenAccept(imageBytes -> {
         jobService.updateJobStatus(job.getId(), Status.PROCESSING);

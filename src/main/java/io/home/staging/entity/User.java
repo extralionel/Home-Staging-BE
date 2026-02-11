@@ -48,6 +48,8 @@ public class User implements UserDetails {
   private String email;
   @Column(name = "password", nullable = false)
   private String password;
+  @Column(name = "credits_left", nullable = false)
+  private Integer creditsLeft;
 
   @ManyToOne
   @JoinColumn(name = "plan_id")
