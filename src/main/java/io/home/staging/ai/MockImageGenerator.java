@@ -21,7 +21,8 @@ public class MockImageGenerator implements ImageGenerator {
 
   @Override
   @Async("imageTaskExecutor")
-  public CompletableFuture<byte[]> generateImage(String prompt, byte[] image) {
+  public CompletableFuture<byte[]> generateImage(String prompt, byte[] image,
+      io.home.staging.entity.ImageQuality quality) {
     log.info("Starting to generate mock image...");
     System.out.println("Processing in: " + Thread.currentThread().getName());
     return CompletableFuture.supplyAsync(() -> {

@@ -35,8 +35,7 @@ public class ProjectService {
       ImageGenerator imageGenerator,
       JobService jobService,
       UserRepository userRepository,
-      ProjectRepository projectRepository
-  ) {
+      ProjectRepository projectRepository) {
     this.imageService = imageService;
     this.jobService = jobService;
     this.imageGenerator = imageGenerator;
@@ -63,20 +62,22 @@ public class ProjectService {
     try {
       String promptText = String.format(
           "Photorealistic virtual staging of a %s, decorated in a premium %s style. " +
-              "**OBJECTIVE:** Furnish the space with high-quality furniture, rugs, and decor that match the room's scale and perspective. " +
-              "**CONSTRAINTS:** Strictly preserve the original structural integrity, including wall positions, window views, ceiling details, and existing flooring materials. Do not alter architectural features. " +
-              "**INTEGRATION:** Ensure new furniture casts realistic shadows on the floor and interacts naturally with the existing lighting direction. " +
+              "**OBJECTIVE:** Furnish the space with high-quality furniture, rugs, and decor that match the room's scale and perspective. "
+              +
+              "**CONSTRAINTS:** Strictly preserve the original structural integrity, including wall positions, window views, ceiling details, and existing flooring materials. Do not alter architectural features. "
+              +
+              "**INTEGRATION:** Ensure new furniture casts realistic shadows on the floor and interacts naturally with the existing lighting direction. "
+              +
               "**AESTHETIC:** Clean lines, decluttered, magazine-quality composition, 8k resolution. " +
               "%s",
           request.getRoomType(),
           request.getStyle(),
-          request.getAdditionalDetails() != null ? "Specific details: " + request.getAdditionalDetails() : ""
-      );
+          request.getAdditionalDetails() != null ? "Specific details: " + request.getAdditionalDetails() : "");
 
       Project project = projectRepository.save(new Project(user, job, promptText));
 
       CompletableFuture<byte[]> imageBytesFuture = imageGenerator.generateImage(promptText,
-          file.getBytes());
+          file.getBytes(), request.getQuality());
 
       imageBytesFuture.thenAccept(imageBytes -> {
         jobService.updateJobStatus(job.getId(), Status.PROCESSING);

@@ -15,4 +15,5 @@ public class PromptRequest {
   private String additionalDetails;
   private String style;
   private String imageId;
+  private io.home.staging.entity.ImageQuality quality = io.home.staging.entity.ImageQuality.STANDARD;
 }
