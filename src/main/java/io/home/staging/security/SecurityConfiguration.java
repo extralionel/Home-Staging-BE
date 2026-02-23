@@ -66,12 +66,16 @@ public class SecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*"));
-       // configuration.setAllowedOrigins(Arrays.asList("https://home-staging-fe-production.up.railway.app/"));
+
+        // 1. Must include protocol (https://) and MUST NOT have a trailing slash
+        configuration.setAllowedOrigins(Arrays.asList("https://home-staging-fe-production.up.railway.app", "http://localhost:5173"));
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        //configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
+
+        // 2. This is now perfectly valid because we are using a specific origin instead of "*"
         configuration.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
