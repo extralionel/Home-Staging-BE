@@ -42,6 +42,6 @@ public class Token {
 
     @Transient
     public boolean isValid() {
-      return !(revoked && expired);
+      return !(revoked || expired);
     }
 }

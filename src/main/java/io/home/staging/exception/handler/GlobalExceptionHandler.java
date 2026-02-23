@@ -1,6 +1,7 @@
 package io.home.staging.exception.handler;
 
 import io.home.staging.exception.ErrorCode;
+import io.home.staging.exception.ExpiredTokenException;
 import io.home.staging.exception.ImageProcessingException;
 import io.home.staging.exception.InsufficientCreditsException;
 import io.home.staging.model.response.ApiResponse;
@@ -31,6 +32,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(InsufficientCreditsException.class)
   public ResponseEntity<ApiResponse> projectInitException(InsufficientCreditsException ex, HttpServletRequest request) {
     HttpStatus status = HttpStatus.NOT_ACCEPTABLE;
+    return ResponseEntity.status(status)
+        .body(new ApiResponse(ex.getErrorCode(), ex.getMessage(), status.value(), request.getRequestURI()));
+  }
+
+  @ExceptionHandler(ExpiredTokenException.class)
+  public ResponseEntity<ApiResponse> expiredTokenException(ExpiredTokenException ex, HttpServletRequest request) {
+    HttpStatus status = HttpStatus.UNAUTHORIZED;
     return ResponseEntity.status(status)
         .body(new ApiResponse(ex.getErrorCode(), ex.getMessage(), status.value(), request.getRequestURI()));
   }
