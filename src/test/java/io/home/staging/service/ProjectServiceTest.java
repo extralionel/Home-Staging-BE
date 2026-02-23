@@ -57,11 +57,11 @@ public class ProjectServiceTest {
   @Test
   void testGetProjects() {
     User user = new User();
-    user.setId(1L);
+    user.setId(1);
 
     Project project = new Project();
     project.setId(10L);
-    project.setJobStatus(new JobStatus());
+    project.setJob(new JobStatus());
 
     when(authentication.getName()).thenReturn("test@test.com");
     when(userRepository.findByEmailOrThrow("test@test.com")).thenReturn(user);
@@ -70,13 +70,13 @@ public class ProjectServiceTest {
     List<ProjectResponse> projects = projectService.getProjects(authentication);
 
     assertEquals(1, projects.size());
-    assertEquals(10L, projects.get(0).getId());
+    assertEquals(10L, projects.get(0).getProjectId());
   }
 
   @Test
   void testInitiateGeneration_Success() {
     User user = new User();
-    user.setId(1L);
+    user.setId(1);
 
     PromptRequest request = new PromptRequest();
     request.setRoomType("Living Room");
@@ -102,7 +102,7 @@ public class ProjectServiceTest {
     JobStatusResponse response = projectService.initiateGeneration(request, file, user);
 
     assertNotNull(response);
-    assertEquals(100L, response.getId());
+    assertEquals(100L, response.getJobId());
     
     verify(creditsValidator).validate(user, request);
     verify(jobService).updateJobStatus(100L, Status.PROCESSING);
