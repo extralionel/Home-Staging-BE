@@ -89,7 +89,7 @@ public class AuthenticationService {
     verificationTokenRepository.save(verificationToken);
 
     String verificationUrl = "http://localhost:8080/api/v1/auth/verify?token=" + token;
-    emailService.sendVerificationEmail(user.getEmail(), verificationUrl);
+    //emailService.sendVerificationEmail(user.getEmail(), verificationUrl);
 
     return AuthenticationResponse.builder()
         .firstName(user.getFirstName())

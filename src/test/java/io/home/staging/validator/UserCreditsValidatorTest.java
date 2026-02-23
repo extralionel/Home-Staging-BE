@@ -34,7 +34,7 @@ public class UserCreditsValidatorTest {
   @Test
   void testValidate_Success() {
     User user = new User();
-    user.setId(1L);
+    user.setId(1);
     user.setCreditsLeft(10);
     user.setGenerationsLeft(5);
 
@@ -48,13 +48,13 @@ public class UserCreditsValidatorTest {
 
     assertTrue(result);
     // Verifying that after validation the daily generation count is updated
-    verify(userRepository).decrementDailyGenerations(1L);
+    verify(userRepository).decrementDailyGenerations(1);
   }
 
   @Test
   void testValidate_InsufficientCredits() {
     User user = new User();
-    user.setId(1L);
+    user.setId(1);
     user.setCreditsLeft(3); // Less than totalCredits (which is 2 * 2 = 4)
 
     PromptRequest request = new PromptRequest();
@@ -75,7 +75,7 @@ public class UserCreditsValidatorTest {
   @Test
   void testValidate_DailyGenerationLimitReached() {
     User user = new User();
-    user.setId(1L);
+    user.setId(1);
     user.setCreditsLeft(10);
     user.setGenerationsLeft(0); // Limit reached
 
