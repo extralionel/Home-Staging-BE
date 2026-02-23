@@ -21,4 +21,6 @@ public class AuthenticationResponse {
     private String lastName;
     @JsonProperty("email")
     private String email;
+    @JsonProperty("message")
+    private String message;
 }

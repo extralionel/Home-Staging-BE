@@ -50,6 +50,8 @@ public class User implements UserDetails {
   private String password;
   @Column(name = "credits_left", nullable = false)
   private Integer creditsLeft;
+  @Column(name = "generations_left", nullable = false)
+  private Integer generationsLeft = 5;
 
   @ManyToOne
   @JoinColumn(name = "plan_id")
@@ -67,6 +69,15 @@ public class User implements UserDetails {
   @Column(name = "role")
   @Enumerated(EnumType.STRING)
   private Role role;
+
+  @Column(name = "auth_provider")
+  @Enumerated(EnumType.STRING)
+  private AuthProvider authProvider;
+
+  @Column(name = "enabled", nullable = false)
+  private boolean enabled = false;
+
+
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -100,6 +111,6 @@ public class User implements UserDetails {
 
   @Override
   public boolean isEnabled() {
-    return true;
+    return enabled;
   }
 }

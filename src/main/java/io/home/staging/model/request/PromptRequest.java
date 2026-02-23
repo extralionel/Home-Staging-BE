@@ -1,5 +1,6 @@
 package io.home.staging.model.request;
 
+import io.home.staging.entity.ImageQuality;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,5 +16,5 @@ public class PromptRequest {
   private String additionalDetails;
   private String style;
   private String imageId;
-  private io.home.staging.entity.ImageQuality quality = io.home.staging.entity.ImageQuality.STANDARD;
+  private ImageQuality quality = ImageQuality.STANDARD;
 }

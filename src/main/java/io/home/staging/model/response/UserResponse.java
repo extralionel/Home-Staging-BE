@@ -28,8 +28,11 @@ public class UserResponse {
     this.firstName = user.getFirstName();
     this.lastName = user.getLastName();
     this.email = user.getEmail();
-    this.planType = user.getPlan().getType();
     this.creditsLeft = user.getCreditsLeft();
     this.totalCredits = user.getPlan().getCredits();
+
+    if (user.getPlan() != null) {
+      this.planType = user.getPlan().getType();
+    }
   }
 }

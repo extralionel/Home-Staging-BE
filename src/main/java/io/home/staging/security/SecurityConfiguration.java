@@ -39,6 +39,7 @@ public class SecurityConfiguration {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(req -> req
                         .requestMatchers("/api/auth/**").permitAll() // Allow login/register
+                        .requestMatchers("/api/v1/payments/webhook").permitAll() // Allow Stripe Webhook
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())

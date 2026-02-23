@@ -1,5 +1,6 @@
 package io.home.staging.controller;
 
+import io.home.staging.entity.User;
 import io.home.staging.model.request.PromptRequest;
 import io.home.staging.model.response.JobStatusResponse;
 import io.home.staging.model.response.ProjectResponse;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,8 +37,9 @@ public class ProjectController {
   public ResponseEntity<JobStatusResponse> generateProject(
       @RequestPart("prompt") PromptRequest request,
       @RequestPart("file") MultipartFile file,
-      Authentication authentication) {
-    JobStatusResponse jobStatus = projectService.initiateGeneration(request, file, authentication);
+      @AuthenticationPrincipal User user
+  ) {
+    JobStatusResponse jobStatus = projectService.initiateGeneration(request, file, user);
     return ResponseEntity.ok(jobStatus);
   }
 

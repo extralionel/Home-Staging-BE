@@ -18,7 +18,7 @@ public class JobService {
     this.jobStatusRepository = jobStatusRepository;
   }
 
-  public JobStatus createJob(Status status, User user) {
+  public JobStatus initJob(Status status, User user) {
     JobStatus job = new JobStatus();
     job.setCreatedAt(LocalDateTime.now());
     job.setUser(user);

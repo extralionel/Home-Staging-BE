@@ -1,162 +1,70 @@
 package io.home.staging.ai;
 
-import com.google.auth.oauth2.GoogleCredentials;
+import io.home.staging.api.GoogleApiClient;
 import io.home.staging.entity.ImageQuality;
+import io.home.staging.model.request.image.GeminiRequest;
+import io.home.staging.model.request.image.GeminiRequest.Candidate;
+import io.home.staging.model.request.image.GeminiRequest.Content;
+import io.home.staging.model.request.image.GeminiRequest.GenerationConfig;
+import io.home.staging.model.request.image.GeminiRequest.ImageConfig;
+import io.home.staging.model.request.image.GeminiRequest.InlineData;
+import io.home.staging.model.request.image.GeminiRequest.Part;
+import io.home.staging.model.request.image.GeminiRequest.Request;
+import io.home.staging.model.request.image.GeminiRequest.Response;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Component
 @Profile("!mock-image-generator")
 public class VertexImageGenerator implements ImageGenerator {
 
-  @Value("${gemini.project.id}")
-  private String projectId;
+  private static final Set<String> ALLOWED_MIME_TYPES = Set.of("image/jpeg", "image/png", "image/webp", "image/heic");
+  private static final Set<String> ALLOWED_RATIOS = Set.of("1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9");
+  private static final Set<String> ALLOWED_QUALITIES = Set.of("1K", "2K", "4K");
 
-  @Value("${gemini.location:us-central1}")
-  private String location;
+  private final GoogleApiClient googleApiClient;
 
-  private final RestTemplate restTemplate;
-  private final ObjectMapper objectMapper;
-
-  public VertexImageGenerator() {
-    this.restTemplate = new RestTemplate();
-    this.objectMapper = new ObjectMapper();
+  public VertexImageGenerator(GoogleApiClient googleApiClient) {
+    this.googleApiClient = googleApiClient;
   }
 
-  @Async("imageTaskExecutor")
   @Override
-  public CompletableFuture<byte[]> generateImage(String prompt, byte[] image,
-      ImageQuality quality) {
-    return CompletableFuture.supplyAsync(() -> {
-      try {
-        log.info("Starting image generation with quality: {}", quality);
+  @Async("imageTaskExecutor")
+  public CompletableFuture<byte[]> generateImage(String prompt, MultipartFile imageFile, ImageQuality quality) {
+    try {
+      String mimeType = imageFile.getContentType();
+      String base64Image = Base64.getEncoder().encodeToString(imageFile.getBytes());
 
-        // 1. Initial Generation
-        byte[] generatedImage = callGenerationApi(prompt, image);
+      Part promptPart = new Part(prompt, null);
+      Part imagePart = new Part(null, new InlineData(mimeType, base64Image));
+      Content content = new Content("user", List.of(promptPart, imagePart));
 
-        // 2. Upscaling if needed
-        if (quality == ImageQuality.HD_2K) {
-          log.info("Upscaling to 2K (x2)...");
-          return callUpscaleApi(generatedImage, "x2");
-        } else if (quality == ImageQuality.UHD_4K) {
-          log.info("Upscaling to 4K (x4)...");
-          return callUpscaleApi(generatedImage, "x4");
-        }
 
-        return generatedImage;
+      // 3. Configurar Calidad (Size) y Aspect Ratio
+      ImageConfig imageConfig = new ImageConfig("16:9", "1K");
+      GenerationConfig config = new GenerationConfig(List.of("IMAGE"), imageConfig);
 
-      } catch (Exception e) {
-        log.error("Image generation failed", e);
-        throw new RuntimeException("Image generation failed", e);
-      }
-    });
-  }
+      // 4. Armar el Request final
+      Request request = new Request(List.of(content), config);
 
-  private byte[] callGenerationApi(String prompt, byte[] inputImage) throws IOException {
-    String url = String.format(
-        "https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/image-3.0-generate-001:predict",
-        location, projectId, location);
+      log.info("Generating image 1K and 16:9...");
 
-    String base64Image = Base64.getEncoder().encodeToString(inputImage);
+      Response response = googleApiClient.generateImage(request);
+      Candidate candidate = response.candidates().get(0);
+      InlineData data = candidate.content().parts().get(0).inlineData();
 
-    // Vertex AI Prediction Payload
-    Map<String, Object> instance = Map.of(
-        "prompt", prompt,
-        "image", Map.of("bytesBase64Encoded", base64Image));
-
-    Map<String, Object> parameters = Map.of(
-        "sampleCount", 1,
-        "aspectRatio", "1:1" // Or make this configurable if needed
-    );
-
-    Map<String, Object> body = Map.of(
-        "instances", List.of(instance),
-        "parameters", parameters);
-
-    return executeRequest(url, body);
-  }
-
-  private byte[] callUpscaleApi(byte[] inputImage, String upscaleConfig) throws IOException {
-    String url = String.format(
-        "https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/image-3.0-generate-001:predict",
-        location, projectId, location);
-
-    String base64Image = Base64.getEncoder().encodeToString(inputImage);
-
-    Map<String, Object> instance = Map.of(
-        "image", Map.of("bytesBase64Encoded", base64Image));
-
-    Map<String, Object> parameters = Map.of(
-        "upscaleConfig", Map.of("upscaleFactor", upscaleConfig));
-
-    Map<String, Object> body = Map.of(
-        "instances", List.of(instance),
-        "parameters", parameters);
-
-    return executeRequest(url, body);
-  }
-
-  private byte[] executeRequest(String url, Map<String, Object> body) throws IOException {
-    String accessToken = getAccessToken();
-
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.setBearerAuth(accessToken);
-
-    HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
-    ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
-
-    if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-      return extractImageFromResponse(response.getBody());
-    } else {
-      throw new RuntimeException("Vertex AI API call failed: " + response.getStatusCode());
+      return CompletableFuture.completedFuture(Base64.getDecoder().decode(data.data()));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-  }
-
-  private String getAccessToken() throws IOException {
-    GoogleCredentials credentials = GoogleCredentials.getApplicationDefault()
-        .createScoped(List.of("https://www.googleapis.com/auth/cloud-platform"));
-    credentials.refreshIfExpired();
-    return credentials.getAccessToken().getTokenValue();
-  }
-
-  private byte[] extractImageFromResponse(String jsonResponse) throws IOException {
-    JsonNode root = objectMapper.readTree(jsonResponse);
-    JsonNode predictions = root.path("predictions");
-
-    if (predictions.isArray() && !predictions.isEmpty()) {
-      JsonNode firstPrediction = predictions.get(0);
-      String base64String = firstPrediction.path("bytesBase64Encoded").asText();
-
-      if (base64String == null || base64String.isEmpty()) {
-        // Sometimes it might be directly in 'image' field inside prediction depending
-        // on model version
-        base64String = firstPrediction.path("image").path("bytesBase64Encoded").asText();
-      }
-
-      if (base64String != null && !base64String.isEmpty()) {
-        return Base64.getDecoder().decode(base64String);
-      }
-    }
-
-    throw new RuntimeException("No image data found in Vertex AI response");
   }
 }

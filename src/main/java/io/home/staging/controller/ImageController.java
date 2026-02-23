@@ -1,11 +1,13 @@
 package io.home.staging.controller;
 
+import io.home.staging.entity.User;
 import io.home.staging.model.response.ImageResponse;
 import io.home.staging.service.ImageService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,10 +29,10 @@ public class ImageController {
 
   @PostMapping
   public ResponseEntity<ImageResponse> uploadImage(
-      Authentication authentication,
+      @AuthenticationPrincipal User user,
       @RequestBody MultipartFile file
   ) {
-    return ResponseEntity.ok(new ImageResponse(imageService.uploadImage(authentication, file)));
+    return ResponseEntity.ok(new ImageResponse(imageService.uploadImage(user, file)));
   }
 
   @GetMapping("/{imageId}")

@@ -1,10 +1,12 @@
 package io.home.staging.controller;
 
+import io.home.staging.entity.User;
 import io.home.staging.model.request.UserProfileRequest;
 import io.home.staging.model.response.UserResponse;
 import io.home.staging.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,7 +23,7 @@ public class UserController {
   }
 
   @GetMapping
-  public ResponseEntity<UserResponse> getUserProfile(Authentication authentication) {
-    return ResponseEntity.ok(userService.getUserProfile(authentication));
+  public ResponseEntity<UserResponse> getUserProfile(@AuthenticationPrincipal User user) {
+    return ResponseEntity.ok(userService.getUserProfile(user));
   }
 }

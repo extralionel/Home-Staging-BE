@@ -1,8 +1,13 @@
 package io.home.staging.service;
 
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.HttpResponse;
 import io.home.staging.entity.Plan;
 import io.home.staging.entity.PlanType;
 import io.home.staging.entity.Role;
+import io.home.staging.entity.VerificationToken;
 import io.home.staging.model.request.LoginRequest;
 import io.home.staging.model.request.RegisterRequest;
 import io.home.staging.model.response.AuthenticationResponse;
@@ -16,6 +21,9 @@ import io.home.staging.security.JwtService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import java.io.IOException;
 
@@ -50,6 +58,8 @@ public class AuthenticationService {
 
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
+  private final io.home.staging.repository.VerificationTokenRepository verificationTokenRepository;
+  private final EmailService emailService;
 
   public AuthenticationResponse register(RegisterRequest request) {
     if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -57,17 +67,36 @@ public class AuthenticationService {
     }
 
     Plan plan = planRepository.findByPlanTypeOrThrow(PlanType.FREE);
-    User user = User.builder().firstName(request.getFirstName()).lastName(request.getLastName())
-        .email(request.getEmail()).plan(plan)
-        .password(passwordEncoder.encode(request.getPassword())).role(Role.USER).build();
-
+    User user = User.builder()
+        .firstName(request.getFirstName())
+        .lastName(request.getLastName())
+        .email(request.getEmail())
+        .plan(plan)
+        .creditsLeft(plan.getCredits())
+        .generationsLeft(plan.getDailyGenerationLimit())
+        .password(passwordEncoder.encode(request.getPassword()))
+        .role(Role.USER)
+        .enabled(true) // TODO: Change this to use account verification
+        .build();
     user = userRepository.save(user);
-    String jwtToken = jwtService.generateToken(user);
-    String refreshToken = jwtService.generateRefreshToken(user);
-    saveUserToken(user, jwtToken);
 
-    return AuthenticationResponse.builder().accessToken(jwtToken).refreshToken(refreshToken)
-        .firstName(user.getFirstName()).lastName(user.getLastName()).email(user.getEmail()).build();
+    String token = UUID.randomUUID().toString();
+    VerificationToken verificationToken = VerificationToken.builder()
+        .token(token)
+        .user(user)
+        .expiryDate(LocalDateTime.now().plusHours(24))
+        .build();
+    verificationTokenRepository.save(verificationToken);
+
+    String verificationUrl = "http://localhost:8080/api/v1/auth/verify?token=" + token;
+    emailService.sendVerificationEmail(user.getEmail(), verificationUrl);
+
+    return AuthenticationResponse.builder()
+        .firstName(user.getFirstName())
+        .lastName(user.getLastName())
+        .email(user.getEmail())
+        .message("User registered successfully. Please check your email to verify your account.")
+        .build();
   }
 
   public AuthenticationResponse authenticate(LoginRequest request) {
@@ -75,14 +104,23 @@ public class AuthenticationService {
         new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
     User user = userRepository.findByEmail(request.getEmail()).orElseThrow();
+    if (!user.isEnabled()) {
+      throw new IllegalStateException("User not verified");
+    }
+
     String token = jwtService.generateToken(user);
     String refreshToken = jwtService.generateRefreshToken(user);
 
     revokeAllUserTokens(user);
     saveUserToken(user, token);
 
-    return AuthenticationResponse.builder().accessToken(token).refreshToken(refreshToken)
-        .firstName(user.getFirstName()).lastName(user.getLastName()).email(user.getEmail()).build();
+    return AuthenticationResponse.builder()
+        .accessToken(token)
+        .refreshToken(refreshToken)
+        .firstName(user.getFirstName())
+        .lastName(user.getLastName())
+        .email(user.getEmail())
+        .build();
   }
 
   public AuthenticationResponse authenticate(GoogleLoginRequest request) {
@@ -113,17 +151,16 @@ public class AuthenticationService {
   private AuthenticationResponse authenticateWithAccessToken(String accessToken)
       throws IOException {
     NetHttpTransport transport = new NetHttpTransport();
-    com.google.api.client.http.HttpRequestFactory requestFactory = transport.createRequestFactory();
-    com.google.api.client.http.GenericUrl url = new com.google.api.client.http.GenericUrl(
-        "https://www.googleapis.com/oauth2/v3/userinfo");
+    HttpRequestFactory requestFactory = transport.createRequestFactory();
+    GenericUrl url = new GenericUrl("https://www.googleapis.com/oauth2/v3/userinfo");
     url.put("access_token", accessToken);
 
-    com.google.api.client.http.HttpRequest request = requestFactory.buildGetRequest(url);
-    com.google.api.client.http.HttpResponse response = request.execute();
+    HttpRequest request = requestFactory.buildGetRequest(url);
+    HttpResponse response = request.execute();
 
     if (response.isSuccessStatusCode()) {
-      java.util.Map<String, Object> payload = new com.google.api.client.json.jackson2.JacksonFactory().createJsonParser(
-          response.getContent()).parse(java.util.Map.class);
+      Map<String, Object> payload = new JacksonFactory().createJsonParser(
+          response.getContent()).parse(Map.class);
 
       return processGoogleUser((String) payload.get("email"), (String) payload.get("given_name"),
           (String) payload.get("family_name"));
@@ -135,8 +172,16 @@ public class AuthenticationService {
   private AuthenticationResponse processGoogleUser(String email, String firstName,
       String lastName) {
     User user = userRepository.findByEmail(email).orElseGet(() -> {
-      User newUser = User.builder().firstName(firstName).lastName(lastName).email(email)
-          .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString())).role(Role.USER)
+      Plan plan = planRepository.findByPlanTypeOrThrow(PlanType.FREE);
+      User newUser = User.builder()
+          .firstName(firstName)
+          .lastName(lastName)
+          .email(email)
+          .plan(plan)
+          .creditsLeft(plan.getCredits())
+          .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+          .role(Role.USER)
+          .enabled(true)
           .build();
       return userRepository.save(newUser);
     });
@@ -146,13 +191,43 @@ public class AuthenticationService {
     revokeAllUserTokens(user);
     saveUserToken(user, jwtToken);
 
-    return AuthenticationResponse.builder().accessToken(jwtToken).refreshToken(refreshToken)
-        .firstName(user.getFirstName()).lastName(user.getLastName()).email(user.getEmail()).build();
+    return AuthenticationResponse.builder()
+        .accessToken(jwtToken)
+        .refreshToken(refreshToken)
+        .firstName(user.getFirstName())
+        .lastName(user.getLastName())
+        .email(user.getEmail())
+        .build();
+  }
+
+  public AuthenticationResponse verifyEmail(String token) {
+    io.home.staging.entity.VerificationToken verificationToken = verificationTokenRepository.findByToken(
+            token)
+        .orElseThrow(() -> new RuntimeException("Invalid verification token"));
+
+    if (verificationToken.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
+      throw new RuntimeException("Verification token has expired");
+    }
+
+    User user = verificationToken.getUser();
+    user.setEnabled(true);
+    userRepository.save(user);
+
+    verificationTokenRepository.delete(verificationToken);
+
+    return AuthenticationResponse.builder()
+        .message("Email verified successfully. You can now log in.")
+        .build();
   }
 
   private void saveUserToken(User user, String jwtToken) {
-    Token token = Token.builder().user(user).token(jwtToken).tokenType(TokenType.BEARER)
-        .expired(false).revoked(false).build();
+    Token token = Token.builder()
+        .user(user)
+        .token(jwtToken)
+        .tokenType(TokenType.BEARER)
+        .expired(false)
+        .revoked(false)
+        .build();
     tokenRepository.save(token);
   }
 
@@ -165,27 +240,29 @@ public class AuthenticationService {
       token.setExpired(true);
       token.setRevoked(true);
     });
-    tokenRepository.saveAll(validUserTokens);
+
+    tokenRepository.saveAllAndFlush(validUserTokens);
   }
 
   public void refreshToken(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
     final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-    final String refreshToken;
-    final String userEmail;
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
       return;
     }
-    refreshToken = authHeader.substring(7);
-    userEmail = jwtService.extractUsername(refreshToken);
-    if (userEmail != null) {
-      var user = this.userRepository.findByEmail(userEmail).orElseThrow();
+
+    String refreshToken = authHeader.substring(7);
+    String email = jwtService.extractUsername(refreshToken);
+    if (email != null) {
+      User user = userRepository.findByEmailOrThrow(email);
       if (jwtService.isTokenValid(refreshToken, user)) {
-        var accessToken = jwtService.generateToken(user);
+        String accessToken = jwtService.generateToken(user);
         revokeAllUserTokens(user);
         saveUserToken(user, accessToken);
-        var authResponse = AuthenticationResponse.builder().accessToken(accessToken)
-            .refreshToken(refreshToken).build();
+        AuthenticationResponse authResponse = AuthenticationResponse.builder()
+            .accessToken(accessToken)
+            .refreshToken(refreshToken)
+            .build();
         new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
       }
     }

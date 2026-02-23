@@ -1,5 +1,6 @@
 package io.home.staging.ai;
 
+import io.home.staging.entity.ImageQuality;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
@@ -11,6 +12,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Component
@@ -21,8 +23,7 @@ public class MockImageGenerator implements ImageGenerator {
 
   @Override
   @Async("imageTaskExecutor")
-  public CompletableFuture<byte[]> generateImage(String prompt, byte[] image,
-      io.home.staging.entity.ImageQuality quality) {
+  public CompletableFuture<byte[]> generateImage(String prompt, MultipartFile image, ImageQuality quality) {
     log.info("Starting to generate mock image...");
     System.out.println("Processing in: " + Thread.currentThread().getName());
     return CompletableFuture.supplyAsync(() -> {

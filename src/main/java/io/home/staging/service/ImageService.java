@@ -63,9 +63,9 @@ public class ImageService {
     this.imageRepository = imageRepository;
   }
 
-  public Image uploadImage(Authentication authentication, MultipartFile file) {
+  public Image uploadImage(User user, MultipartFile file) {
     try {
-      return uploadImage(authentication, null, file.getBytes());
+      return uploadImage(user, null, file.getBytes());
     } catch (IOException e) {
       throw new RuntimeException("Error while deserializing image", e);
     }
@@ -74,10 +74,7 @@ public class ImageService {
   /**
    * Upload image to Cloudinary
    */
-  public Image uploadImage(Authentication authentication, Project project, byte[] file) {
-    String email = authentication.getName();
-    User user = userRepository.findByEmailOrThrow(email);
-
+  public Image uploadImage(User user, Project project, byte[] file) {
     try {
       Map result = cloudinary.uploader().upload(file, Map.of());
       String publicId = result.get("public_id").toString();
