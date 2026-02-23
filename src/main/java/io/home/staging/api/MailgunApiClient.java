@@ -16,7 +16,7 @@ public class MailgunApiClient {
 
   public MailgunApiClient(
       @Qualifier("mailgunClient") RestClient mailgunClient,
-      @Value("${email.mailgun.from}") String from
+      @Value("${email.mailgun.from:hello}") String from
   ) {
     this.mailgunClient = mailgunClient;
     this.from = from;

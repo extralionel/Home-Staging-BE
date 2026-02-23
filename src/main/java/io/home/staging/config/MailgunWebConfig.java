@@ -16,9 +16,9 @@ public class MailgunWebConfig {
   private final String baseUrl;
 
   public MailgunWebConfig(
-      @Value("${email.mailgun.base-url}") String baseUrl,
-      @Value("${email.mailgun.domain}") String domain,
-      @Value("${email.mailgun.api-key}") String apiKey) {
+      @Value("${email.mailgun.base-url:hello}") String baseUrl,
+      @Value("${email.mailgun.domain:hello}") String domain,
+      @Value("${email.mailgun.api-key:hello}") String apiKey) {
     this.baseUrl = baseUrl;
     this.domain = domain;
     this.apiKey = apiKey;
