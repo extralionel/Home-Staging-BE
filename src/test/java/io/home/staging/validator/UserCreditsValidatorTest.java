@@ -49,6 +49,7 @@ public class UserCreditsValidatorTest {
     assertTrue(result);
     // Verifying that after validation the daily generation count is updated
     verify(userRepository).decrementDailyGenerations(1);
+    // save
   }
 
   @Test
