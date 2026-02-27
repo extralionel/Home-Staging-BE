@@ -15,4 +15,11 @@ public interface JobStatusRepository extends JpaRepository<JobStatus, Long> {
     return findById(jobId).orElseThrow(
         () -> new EntityNotFoundException("Job not found for id: " + jobId));
   }
+
+  @org.springframework.data.jpa.repository.Modifying
+  @org.springframework.data.jpa.repository.Query("UPDATE JobStatus j SET j.status = :targetStatus, j.updatedAt = CURRENT_TIMESTAMP WHERE j.status = :currentStatus AND j.updatedAt < :threshold")
+  int markStaleJobsAsFailed(
+      @org.springframework.data.repository.query.Param("currentStatus") JobStatus.Status currentStatus,
+      @org.springframework.data.repository.query.Param("targetStatus") JobStatus.Status targetStatus,
+      @org.springframework.data.repository.query.Param("threshold") java.time.LocalDateTime threshold);
 }

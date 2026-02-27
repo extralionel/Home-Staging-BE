@@ -42,4 +42,11 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(status)
         .body(new ApiResponse(ex.getErrorCode(), ex.getMessage(), status.value(), request.getRequestURI()));
   }
+
+  @ExceptionHandler(io.jsonwebtoken.JwtException.class)
+  public ResponseEntity<ApiResponse> jwtException(io.jsonwebtoken.JwtException ex, HttpServletRequest request) {
+    HttpStatus status = HttpStatus.UNAUTHORIZED;
+    return ResponseEntity.status(status)
+        .body(new ApiResponse(ErrorCode.UNAUTHORIZED, "Invalid or expired JWT token.", status.value(), request.getRequestURI()));
+  }
 }

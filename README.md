@@ -1,6 +1,6 @@
 # 🏡 Home Staging AI - Back-end
 
-[![Java Version](https://img.shields.io/badge/Java-25-blue.svg)](https://www.oracle.com/java/technologies/javase/jdk25-archive-downloads.html)
+[![Java Version](https://img.shields.io/badge/Java-21-blue.svg)](https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -10,11 +10,13 @@ Powering the future of real estate with AI-driven home staging. This repository 
 
 ## 🚀 Teck Stack
 
-- **Core:** Java 25 & Spring Boot 4.0.2
+- **Core:** Java 21 & Spring Boot 4.0.2
 - **Security:** Spring Security & JWT (JSON Web Token)
 - **Database:** MySQL
 - **ORM:** Spring Data JPA & Lombok
 - **Storage:** Cloudinary (for image management)
+- **AI Integrations:** Google Gemini API
+- **Notifications:** JavaMailSender
 - **Auth:** OAuth2 with Google Integration
 
 ---
@@ -23,7 +25,8 @@ Powering the future of real estate with AI-driven home staging. This repository 
 
 - **🔐 Secure Authentication:** Hybrid JWT-based authentication supporting traditional login/register and Google OAuth2.
 - **🖼️ Image Management:** Complete CRUD for room images with Cloudinary integration for scalable storage.
-- **🤖 AI Pipeline:** Backend infrastructure to support AI-driven staging transformations.
+- **🤖 AI Pipeline:** Backend infrastructure to support AI-driven staging transformations using the Google Gemini API.
+- **⚡ High Concurrency:** Leveraging Java Virtual Threads for efficient async execution.
 - **📊 Monitoring:** Built-in health checks and metrics via Spring Boot Actuator.
 
 ---
@@ -48,7 +51,7 @@ The platform implements a hybrid, stateless JWT-based authentication system with
 
 4. **`POST /refresh-token`**
    - **Request:** Must include the refresh token.
-   - **Logic:** Validates the refresh token. Issues a new access token, revokes the user's previous tokens to prevent misuse, and returns the new token pair, ensuring continuous secure access without re-login.
+   - **Logic:** Validates the refresh token. If the access token has expired (`ExpiredJwtException`), the API correctly returns `401 Unauthorized` so the frontend can silently refresh. It then issues a new access token, revokes the user's previous tokens to prevent misuse, and returns the new token pair, ensuring continuous secure access without re-login.
 
 ---
 
@@ -71,7 +74,7 @@ src/main/java/io/home/staging/
 
 ### Prerequisites
 
-- **JDK 25** installed
+- **JDK 21** installed
 - **MySQL** instance running
 - **Maven** 3.9+
 

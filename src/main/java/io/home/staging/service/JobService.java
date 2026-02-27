@@ -43,4 +43,14 @@ public class JobService {
     job.setStatus(Status.SUCCESS);
     jobStatusRepository.saveAndFlush(job);
   }
+
+  @org.springframework.transaction.annotation.Transactional
+  public int cleanupStaleJobs() {
+    LocalDateTime threshold = LocalDateTime.now().minusMinutes(15);
+    int updatedCount = jobStatusRepository.markStaleJobsAsFailed(Status.PROCESSING, Status.FAILED, threshold);
+    if (updatedCount > 0) {
+      log.info("Cleaned up {} stale jobs that were in PROCESSING state for more than 15 minutes.", updatedCount);
+    }
+    return updatedCount;
+  }
 }
